@@ -1,10 +1,11 @@
 import { getCustomRepository, getRepository, In } from 'typeorm';
-import fs from 'fs';
 import csvParse from 'csv-parse';
-import Transaction from '../models/Transaction';
+import fs from 'fs';
 
-import TransactionRepository from '../repositories/TransactionsRepository';
+import Transaction from '../models/Transaction';
 import Category from '../models/Category';
+
+import TransactionsRepository from '../repositories/TransactionsRepository';
 
 interface CSVTransaction {
   title: string;
@@ -15,10 +16,15 @@ interface CSVTransaction {
 
 class ImportTransactionsService {
   async execute(filePath: string): Promise<Transaction[]> {
-    const transactionRepository = getCustomRepository(TransactionRepository);
+    const transactionsRepository = getCustomRepository(TransactionsRepository);
     const categoriesRepository = getRepository(Category);
+
     const contactsReadStream = fs.createReadStream(filePath);
-    const parsers = csvParse({ from_line: 2 });
+
+    const parsers = csvParse({
+      from_line: 2,
+    });
+
     const parseCSV = contactsReadStream.pipe(parsers);
 
     const transactions: CSVTransaction[] = [];
@@ -32,16 +38,13 @@ class ImportTransactionsService {
       if (!title || !type || !value) return;
 
       categories.push(category);
-
       transactions.push({ title, type, value, category });
     });
 
     await new Promise(resolve => parseCSV.on('end', resolve));
 
     const existentCategories = await categoriesRepository.find({
-      where: {
-        title: In(categories),
-      },
+      where: { title: In(categories) },
     });
 
     const existentCategoriesTitles = existentCategories.map(
@@ -61,7 +64,8 @@ class ImportTransactionsService {
     await categoriesRepository.save(newCategories);
 
     const finalCategories = [...newCategories, ...existentCategories];
-    const createdTransactions = transactionRepository.create(
+
+    const createdTransactions = transactionsRepository.create(
       transactions.map(transaction => ({
         title: transaction.title,
         type: transaction.type,
@@ -72,7 +76,7 @@ class ImportTransactionsService {
       })),
     );
 
-    await transactionRepository.save(createdTransactions);
+    await transactionsRepository.save(createdTransactions);
 
     await fs.promises.unlink(filePath);
 

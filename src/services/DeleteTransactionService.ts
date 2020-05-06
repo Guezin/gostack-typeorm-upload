@@ -6,14 +6,15 @@ import TransactionsRepository from '../repositories/TransactionsRepository';
 
 class DeleteTransactionService {
   public async execute(id: string): Promise<void> {
-    const transactionRepository = getCustomRepository(TransactionsRepository);
-    const transaction = await transactionRepository.findOne(id);
+    const transactionsRepository = getCustomRepository(TransactionsRepository);
+
+    const transaction = await transactionsRepository.findOne(id);
 
     if (!transaction) {
-      throw new AppError('Does not exists this transaction.');
+      throw new AppError('transaction does not exist');
     }
 
-    await transactionRepository.remove(transaction);
+    await transactionsRepository.remove(transaction);
   }
 }
 

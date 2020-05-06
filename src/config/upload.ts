@@ -1,18 +1,17 @@
-import multer from 'multer';
+import path from 'path';
 import crypto from 'crypto';
-import { resolve } from 'path';
+import multer from 'multer';
 
-const directory = resolve(__dirname, '..', '..', 'tmp');
+const tmpFolder = path.resolve(__dirname, '..', '..', 'tmp');
 
 export default {
-  directory,
+  directory: tmpFolder,
   storage: multer.diskStorage({
-    destination: directory,
-    filename: (request, file, callback) => {
-      const hash = crypto.randomBytes(10).toString('HEX');
-      const fileHash = `${hash}-${file.originalname}`;
-
-      return callback(null, fileHash);
+    destination: tmpFolder,
+    filename(request, file, callback) {
+      const fileHash = crypto.randomBytes(10).toString('HEX');
+      const fileName = `${fileHash}-${file.originalname}`;
+      return callback(null, fileName);
     },
   }),
 };
